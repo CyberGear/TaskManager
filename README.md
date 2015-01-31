@@ -1,6 +1,5 @@
 # CyberGear TaskManager
-*Version:* ***0.0.1***
-*Min Sdk Version* ***2.3.3***
+*Version:* ***0.0.1***, *Min SDK version:* ***2.3.3***
 
 ## Description
 
