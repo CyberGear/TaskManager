@@ -27,7 +27,4 @@ dependencies {
 }
 ```
 
-## Usage
-
-There is example in 'app' module 'MainActivity' class
-
+## [Usage Example](https://github.com/CyberGear/TaskManager/blob/master/app/src/main/java/lt/cybergear/taskmanager/test/MainActivity.java)
