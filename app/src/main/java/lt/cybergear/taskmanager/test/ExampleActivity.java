@@ -10,7 +10,7 @@ import lt.cybergear.taskmanager.Callback;
 import lt.cybergear.taskmanager.Task;
 import lt.cybergear.taskmanager.TaskStartMethod;
 
-public class MainActivity extends ActionBarActivity {
+public class ExampleActivity extends ActionBarActivity {
 
     TextView textView;
 

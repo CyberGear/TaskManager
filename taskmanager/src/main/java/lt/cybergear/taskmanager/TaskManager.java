@@ -1,10 +1,13 @@
 package lt.cybergear.taskmanager;
 
+import android.os.AsyncTask;
 import android.util.Log;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+
+import static android.os.AsyncTask.Status.FINISHED;
 
 /**
  * Created by nk on 13.12.11.
@@ -13,7 +16,9 @@ public class TaskManager {
     private static final String TAG = TaskManager.class.getSimpleName();
 
     private static final Map<String, Task> runningTasks = new HashMap<>();
+    static private final Map<String, AsyncTaskToRun> runningAsync = new HashMap<>();
     private static final Map<String, Map<String, Method>> methodsOfClasses = new HashMap<>();
+
     private static TaskListener taskListener = new EmptyTaskListener();
 
     public static void relinkIfNecessary(Object o) {
@@ -35,10 +40,10 @@ public class TaskManager {
     }
 
     public static String startTask(Object object, Task<?> task) {
-        return startTask(object.getClass().getCanonicalName(), getIdAndMethod(object), task);
+        return saveStartMethod(object.getClass().getCanonicalName(), getIdAndMethod(object), task);
     }
 
-    private static String startTask(String aClass, Map<String, Method> methodOfId, Task<?> task) {
+    private static String saveStartMethod(String aClass, Map<String, Method> methodOfId, Task<?> task) {
         if (!methodsOfClasses.containsKey(aClass)) {
             methodsOfClasses.put(aClass, new HashMap<String, Method>());
         }
@@ -84,12 +89,13 @@ public class TaskManager {
     @SuppressWarnings("unchecked")
     private static String startTask(String taskId, Task<?> task) {
         Task<?> runningTask = runningTasks.get(taskId);
-        if (runningTask == null) {
+        AsyncTaskToRun taskToRun = runningAsync.get(taskId);
+        if (runningTask == null || (taskToRun != null && taskToRun.getStatus() == FINISHED)) {
             runningTasks.put(taskId, task);
-            task.setCallback(new ResumedCallback(taskId, new TaskRemover(taskId, task.getCallback())));
-            new AsyncTaskToRun(taskId).execute();
+            task.setCallback(new ResumedCallback(new TaskRemover(taskId, task.getCallback())));
+            runningAsync.put(taskId, new AsyncTaskToRun(taskId).exec());
         } else {
-            runningTask.setCallback(new ResumedCallback(taskId, new TaskRemover(taskId, task.getCallback())));
+            runningTask.setCallback(new ResumedCallback(new TaskRemover(taskId, task.getCallback())));
             if (runningTask.hasResult()) {
                 runningTask.onResponseReceived();
             }
@@ -99,9 +105,14 @@ public class TaskManager {
 
     public static void stopTask(String taskId) {
         Task runningTask = runningTasks.get(taskId);
+        AsyncTaskToRun taskToRun = runningAsync.get(taskId);
         if (runningTask != null) {
             runningTask.cancel();
             runningTasks.remove(taskId);
+        }
+        if (taskToRun != null) {
+            taskToRun.cancel(true);
+            runningAsync.remove(taskId);
         }
     }
 
@@ -159,6 +170,11 @@ public class TaskManager {
                 runningTasks.get(taskId).onPostExecute(o);
             }
         }
+
+        public AsyncTaskToRun exec() {
+            execute();
+            return this;
+        }
     }
 
     static class TaskRemover<T> implements Callback<T> {
@@ -173,27 +189,43 @@ public class TaskManager {
 
         @Override
         public void onResponseReceived(T result, Exception serviceError) {
-            runningTasks.remove(taskId);
             if (callback != null) {
+                remove();
                 callback.onResponseReceived(result, serviceError);
+            } else {
+                // FIXME: could be bad idea
+                new Thread() {
+                    @Override
+                    public void run() {
+                        try { sleep(1000); } catch (InterruptedException e) { /* ignore */ }
+                        if (callback == null && runningTasks.containsKey(taskId)) {
+                            remove();
+                        }
+                    }
+                }.start();
             }
+        }
+
+        public void remove() {
+            if (runningAsync.containsKey(taskId)) {
+                runningAsync.get(taskId).cancel(true);
+            }
+            runningTasks.remove(taskId);
+            runningAsync.remove(taskId);
         }
     }
 
     static class ResumedCallback<T> implements Callback<T> {
 
-        private String taskId;
         private Callback<T> callback;
 
-        ResumedCallback(String taskId, Callback<T> callback) {
-            this.taskId = taskId;
+        ResumedCallback(Callback<T> callback) {
             this.callback = callback;
         }
 
         @Override
         public void onResponseReceived(T result, Exception serviceError) {
             if (callback != null) {
-                Task value = runningTasks.get(taskId);
                 callback.onResponseReceived(result, serviceError);
             }
         }

@@ -1,5 +1,12 @@
 # CyberGear TaskManager
+
+*Version:* ***0.0.2***
+
+ - must be better callback handling
+
 *Version:* ***0.0.1***, *Min SDK version:* ***10*** *(* *Android:* ***2.3.3*** *)*
+
+---
 
 ## Description
 
@@ -23,7 +30,7 @@ module build.gradle
 ```Groovy
 dependencies {
     ...
-    compile 'lt.cybergear:taskmanager:0.0.1'
+    compile 'lt.cybergear:taskmanager:0.0.2'
 }
 ```
 
