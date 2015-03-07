@@ -1,5 +1,9 @@
 # CyberGear TaskManager
 
+*Version:* ***0.0.3***
+
+ - cleaned manifest from not necessary tags
+
 *Version:* ***0.0.2***
 
  - must be better callback handling
@@ -30,7 +34,7 @@ module build.gradle
 ```Groovy
 dependencies {
     ...
-    compile 'lt.cybergear:taskmanager:0.0.2'
+    compile 'lt.cybergear:taskmanager:0.0.3'
 }
 ```
 
